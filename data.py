@@ -1,3 +1,5 @@
+import gzip
+
 import numpy as np
 import pandas as pd
 
@@ -20,3 +22,16 @@ def standardize(train, test):
     mean = np.mean(train)
     std = np.std(train)
     return (train - mean) / std, (test - mean) / std, mean, std
+
+
+def _read_idx(path, header_bytes):
+    with gzip.open(path) as f:
+        return np.frombuffer(f.read(), dtype=np.uint8, offset=header_bytes)
+
+
+def load_mnist(images_path, labels_path):
+    labels = _read_idx(labels_path, 8)
+    images = _read_idx(images_path, 16).reshape(len(labels), -1)
+    X = images.T / 255
+    Y = np.eye(10)[:, labels]
+    return X, Y

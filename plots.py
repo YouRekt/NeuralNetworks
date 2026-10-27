@@ -4,10 +4,12 @@ from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 # one fixed color per activation / loss / class in every figure
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+LINE_SERIES = SERIES + ["#eda100", "#e87ba4"]  # up to five line series, same fixed order
 ACT_COLORS = {"sigmoid": SERIES[0], "tanh": SERIES[1], "relu": SERIES[2]}
 CLASS_CMAP = ListedColormap(SERIES)
 INK, MUTED, TRAIN_GRAY, TEST_GRAY = "#0b0b0b", "#898781", "#6f6e69", "#d6d4cf"
 WEIGHT_CMAP = LinearSegmentedColormap.from_list("weights", ["#e34948", "#f0efec", "#2a78d6"])  # negative, 0, positive
+ERROR_CMAP = LinearSegmentedColormap.from_list("errors", ["#ffffff", "#9ec5f4", "#2a78d6", "#104281"])  # 0 -> most
 
 plt.rcParams.update({
     "figure.dpi": 100, "savefig.dpi": 200, "savefig.bbox": "tight",
@@ -72,6 +74,38 @@ def plot_weights(history, title):
     fig.suptitle(title)
     fig.tight_layout()
     return fig
+
+
+def plot_digits(X, titles, ncols=10):
+    # X: (784, n), one 28x28 image per column
+    nrows = -(-X.shape[1] // ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(1.1 * ncols, 1.3 * nrows), squeeze=False)
+    for ax in axes.ravel():
+        ax.axis("off")
+    for ax, image, title in zip(axes.ravel(), X.T, titles):
+        ax.imshow(image.reshape(28, 28), cmap="gray_r", vmin=0, vmax=1)
+        ax.set_title(title, fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_confusion(ax, confusion, title):
+    # rows: true class, columns: predicted class; color shows only the errors, the diagonal is written in bold
+    errors = confusion.astype(float)
+    np.fill_diagonal(errors, np.nan)
+    ax.imshow(errors, cmap=ERROR_CMAP, vmin=0)
+    ax.grid(False)
+    K = len(confusion)
+    for i in range(K):
+        for j in range(K):
+            dark = i != j and errors[i, j] > 0.6 * np.nanmax(errors)
+            ax.text(j, i, int(confusion[i, j]), ha="center", va="center", fontsize=8,
+                    color="white" if dark else INK, fontweight="bold" if i == j else "normal")
+    ax.set_xticks(range(K))
+    ax.set_yticks(range(K))
+    ax.set_xlabel("predicted")
+    ax.set_ylabel("true")
+    ax.set_title(title)
 
 
 def plot_network(history, epochs, title, ncols=2):
